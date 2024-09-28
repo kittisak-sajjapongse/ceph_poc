@@ -1,0 +1,34 @@
+# Install only on Ubuntu 22.4
+sudo apt install -y cephadm
+CEPH_RELEASE=18.2.4
+curl --silent --remote-name --location https://download.ceph.com/rpm-${CEPH_RELEASE}/el9/noarch/cephadm
+chmod +x cephadm
+sudo ./cephadm add-repo --release reef
+sudo ./cephadm install
+
+# look from priivate ip addr
+sudo cephadm bootstrap --mon-ip <priivate_ip>
+
+sudo apt install radosgw
+sudo mkdir -p /var/lib/ceph/radosgw/ceph-rgw.`hostname -s`
+sudo ceph auth get-or-create client.rgw.`hostname -s` osd 'allow rwx' mon 'allow rw' -o /var/lib/ceph/radosgw/ceph-rgw.`hostname -s`/keyring
+
+# sudo vi /etc/ceph/ceph.conf
+[client.rgw.ceph3]
+        host = ceph3
+        keyring = /var/lib/ceph/radosgw/ceph-rgw.ceph3/keyring              log file = /var/log/ceph/ceph-rgw-ceph3.log
+        rgw frontends = "beast endpoint=10.104.0.8:8080"
+        rgw thread pool size = 512  
+
+sudo systemctl start ceph-radosgw@rgw.`hostname -s`
+sudo systemctl status ceph-radosgw@rgw.`hostname -s`
+sudo systemctl enable ceph-radosgw@rgw.`hostname -s`
+
+$ radosgw-admin user create --uid="synchronization-user" --display-name="Synchronization User" --system
+2024-09-26T14:19:14.397+0000 7fb26baf0a40 -1 auth: unable to find a keyring on /etc/ceph/ceph.client.admin.keyring,/etc/ceph/ceph.keyring,/etc/ceph/keyring,/etc/ceph/keyring.bin: (2) No such file or directory
+2024-09-26T14:19:14.397+0000 7fb26baf0a40 -1 AuthRegistry(0x5640a0fe8a40) no keyring found at /etc/ceph/ceph.client.admin.keyring,/etc/ceph/ceph.keyring,/etc/ceph/keyring,/etc/ceph/keyring.bin, disabling cephx
+2024-09-26T14:19:14.397+0000 7fb26baf0a40 -1 auth: unable to find a keyring on /etc/ceph/ceph.client.admin.keyring,/etc/ceph/ceph.keyring,/etc/ceph/keyring,/etc/ceph/keyring.bin: (2) No such file or directory
+2024-09-26T14:19:14.397+0000 7fb26baf0a40 -1 AuthRegistry(0x7fff118b2270) no keyring found at /etc/ceph/ceph.client.admin.keyring,/etc/ceph/ceph.keyring,/etc/ceph/keyring,/etc/ceph/keyring.bin, disabling cephx
+2024-09-26T14:19:14.401+0000 7fb26a2b2640 -1 monclient(hunting): handle_auth_bad_method server allowed_methods [2] but i only support [1]
+2024-09-26T14:19:14.401+0000 7fb26baf0a40 -1 monclient: authenticate NOTE: no keyring found; disabled cephx authentication
+failed to fetch mon config (--no-mon-config to skip)

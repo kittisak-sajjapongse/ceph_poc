@@ -1,0 +1,132 @@
+sudo apt-get install radosgw
+sudo mkdir -p /var/lib/ceph/radosgw/ceph-rgw.`hostname -s`
+sudo ceph auth get-or-create client.rgw.`hostname -s` osd 'allow rwx' mon 'allow rw' -o /var/lib/ceph/radosgw/ceph-rgw.`hostname -s`/keyring
+
+sudo vi /etc/ceph/ceph.conf
+———————————————————————————————————————
+[client.rgw.n1]
+        host = cephx
+        keyring = /var/lib/ceph/radosgw/ceph-rgw.cephx/keyring
+        log file = /var/log/ceph/ceph-rgw-cephx.log
+        rgw frontends = "beast endpoint=10.104.0.6:8080"
+        rgw thread pool size = 512
+———————————————————————————————————————
+
+sudo systemctl start ceph-radosgw@rgw.`hostname -s`
+sudo systemctl status ceph-radosgw@rgw.`hostname -s`
+sudo systemctl enable ceph-radosgw@rgw.`hostname -s`
+
+# *** Note: The gateway creates its own pool with the names:
+# .rgw.root  
+# default.rgw.log
+# default.rgw.control
+# default.rgw.meta
+# We want to set no replication on the pool
+ceph config set global  mon_allow_pool_size_one true
+ceph osd pool set .rgw.root min_size 1
+ceph osd pool set .rgw.root size 1 --yes-i-really-mean-it
+ceph osd pool set default.rgw.log min_size 1
+ceph osd pool set default.rgw.log size 1 --yes-i-really-mean-it
+ceph osd pool set default.rgw.control min_size 1
+ceph osd pool set default.rgw.control size 1 --yes-i-really-mean-it
+ceph osd pool set default.rgw.meta min_size 1
+ceph osd pool set default.rgw.meta size 1 --yes-i-really-mean-it
+
+# Wait until all pools are active and clean
+# You will also note that the 'Overview' subsection under the 'Gateway' section is active
+
+# Creating new zone causes RGW to create new pools
+# test-zone.rgw.log
+# test-zone.rgw.control
+# test-zone.rgw.meta 
+sudo radosgw-admin realm create --rgw-realm=test-realm --default
+sudo radosgw-admin zonegroup create --rgw-zonegroup=test-zonegroup --endpoints=http://cephx:8080 --rgw-realm=test-realm --master --default
+sudo radosgw-admin zone create --rgw-zonegroup=test-zonegroup --endpoints=http://cephx:8080 --rgw-zone=test-zone --master --default
+
+sudo vi /etc/ceph/ceph.conf
+[client.rgw.n1]
+        host = cephx
+        keyring = /var/lib/ceph/radosgw/ceph-rgw.cephx/keyring
+        log file = /var/log/ceph/ceph-rgw-cephx.log
+        rgw frontends = "beast endpoint=10.104.0.6:8080"
+        rgw thread pool size = 512
++       rgw_zone=test-zone
+sudo systemctl restart ceph-radosgw@rgw.`hostname -s`
+
+# We will need to set no replica for the new pools corresponding to the new zone
+ceph osd pool set test-zone.rgw.log min_size 1
+ceph osd pool set test-zone.rgw.log size 1 --yes-i-really-mean-it
+ceph osd pool set test-zone.rgw.control min_size 1
+ceph osd pool set test-zone.rgw.control size 1 --yes-i-really-mean-it
+ceph osd pool set test-zone.rgw.meta  min_size 1
+ceph osd pool set test-zone.rgw.meta  size 1 --yes-i-really-mean-it
+
+# At this point you will see the 'Object Gateway -> Overview section' has error since it does not have credential to access RGW
+sudo ceph dashboard set-rgw-credentials
+
+# We should configure the zone other than default (in /etc/ceph/ceph.conf) if we want to create a system user.
+# Otherwise, this command will complain about zone not being configured, hang there, and never exit.
+sudo radosgw-admin user create --uid="test-user" --display-name="Test User" --system
+
+sudo radosgw-admin zone modify --rgw-zone=test-zone --access-key=ZPB2M16XU0ZS3T32NCTP --secret=YVoHiTNKVBTygk80vFsxy4CrIGtnACO8Xz3GFx5V
+# Period need to have changes commited: https://github.com/rook/rook/issues/6210
+sudo radosgw-admin period update --commit
+
+{
+    "user_id": "test-user",
+    "display_name": "Test User",
+    "email": "",
+    "suspended": 0,
+    "max_buckets": 1000,
+    "subusers": [],
+    "keys": [
+        {
+            "user": "test-user",
+            "access_key": "ZPB2M16XU0ZS3T32NCTP",
+            "secret_key": "YVoHiTNKVBTygk80vFsxy4CrIGtnACO8Xz3GFx5V"
+        }
+    ],
+    "swift_keys": [],
+    "caps": [],
+    "op_mask": "read, write, delete",
+    "system": true,
+    "default_placement": "",
+    "default_storage_class": "",
+    "placement_tags": [],
+    "bucket_quota": {
+        "enabled": false,
+        "check_on_raw": false,
+        "max_size": -1,
+        "max_size_kb": 0,
+        "max_objects": -1
+    },
+    "user_quota": {
+        "enabled": false,
+        "check_on_raw": false,
+        "max_size": -1,
+        "max_size_kb": 0,
+        "max_objects": -1
+    },
+    "temp_url_keys": [],
+    "type": "rgw",
+    "mfa_ids": []
+}
+
+# Accessing S3 API using aws CLI
+# aws --endpoint-url=http://152.42.223.196:7480 s3 ls
+export AWS_ENDPOINT_URL=http://152.42.223.196:7480
+export AWS_ACCESS_KEY_ID=QQC332WS7QL90PETWHPV
+export AWS_SECRET_ACCESS_KEY=UpwRFmtDilkxpAEbbZKb3JdEr4ByBGHIA456q3NE
+export AWS_DEFAULT_REGION=test-realm
+
+500 - Internal Server Error
+RGW REST API failed request with status code 400 (b'{"Code":"InvalidLocationConstraint","Message":"The specified location-constr' b'aint is not valid","BucketName":"kitty-bucket1","RequestId":"tx000004e2b0498' b'9bcab45b-0066f80b4d-3d6d-test-zone","HostId":"3d6d-test-zone-test-zonegroup"' b'}')
+28/9/24 09:57 AM
+
+# After trying to create a bucket either using the dashboard or AWS CLI, the new pool ('test-zone.rgw.buckets.index') will be created and we need to set no replication for that
+ceph osd pool set test-zone.rgw.buckets.index  min_size 1
+ceph osd pool set test-zone.rgw.buckets.index  size 1 --yes-i-really-mean-it
+
+# After uploading data to S3, the new pool ('test-zone.rgw.buckets.data') will be created and set no replication on that pool.
+ceph osd pool set test-zone.rgw.buckets.data  min_size 1
+ceph osd pool set test-zone.rgw.buckets.data  size 1 --yes-i-really-mean-it

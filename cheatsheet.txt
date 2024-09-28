@@ -1,0 +1,28 @@
+=== shell ===
+sudo cephadm shell
+
+=== Pool ===
+ceph osd pool ls
+
+ceph tell mon.* injectargs --mon_allow_pool_delete true
+ceph osd pool delete <pool_name> <pool_name> --yes-i-really-really-mean-it
+ceph tell mon.* injectargs --mon_allow_pool_delete false
+
+ceph osd pool create <pool> 128 128 # osd pool create <pool> [<pg_num:int>] [<pgp_num:int>]
+
+# === No replication ===
+# Reference: https://stackoverflow.com/questions/70478818/resizing-pool-to-1-has-been-disabled-by-default-on-ceph-pacific-stable-6-0
+ceph osd pool set <pool> size 2
+ceph config set global  mon_allow_pool_size_one true
+ceph osd pool set <poo> min_size 1
+ceph osd pool set <pool> size 1 --yes-i-really-mean-it
+
+rados --pool mypool put myobject /path/to/file
+rados --pool mypool ls
+rados --pool mypool get myobject /path/to/save/file
+rados --id admin --conf /etc/ceph/ceph.conf --keyring /etc/ceph/ceph.client.admin.keyring --pool mypool put myobject /path/to/file
+rados --id admin --conf /etc/ceph/ceph.conf --keyring /etc/ceph/ceph.client.admin.keyring --pool mypool get myobject /path/to/save/file
+
+
+
+
