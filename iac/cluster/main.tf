@@ -75,6 +75,7 @@ locals {
     runcmd:
       - sed -i 's/^#ClientAliveInterval.*/ClientAliveInterval 60/' /etc/ssh/sshd_config
       - systemctl restart ssh
+      - cd /root; git clone https://github.com/kittisak-sajjapongse/ceph_poc.git
   EOF
 }
 

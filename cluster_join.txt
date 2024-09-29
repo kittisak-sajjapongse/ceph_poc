@@ -1,3 +1,8 @@
+#########################
+# Important Note!!!
+# Dashboard and ceph command starts to hang when the number of OSDs reaches count of 3
+#########################
+
 
 # Login as root on the OSD nodes
 mkdir -p ~/.ssh
