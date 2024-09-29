@@ -49,10 +49,6 @@ variable "hosts" {
     {
       name = "storage02",
       size = "s-2vcpu-4gb",
-    },
-    {
-      name = "storage03",
-      size = "s-2vcpu-4gb",
     }
   ]
 }
@@ -128,6 +124,18 @@ resource "digitalocean_droplet" "master" {
 
   # Use cloud-init to change the root password on master server too
   user_data = local.cloud_init
+}
+
+# Create 10GB volumes and attach them to the master hosts
+resource "digitalocean_volume" "master_volumes" {
+  name   = "master-volume"
+  region = var.region
+  size   = 10  # Size in GB
+}
+
+resource "digitalocean_volume_attachment" "master_volume_attachment" {
+  droplet_id = digitalocean_droplet.master.id
+  volume_id  = digitalocean_volume.master_volumes.id
 }
 
 # Create a firewall for internal hosts, allowing SSH only from bastion

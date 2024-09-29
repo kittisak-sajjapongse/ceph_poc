@@ -22,5 +22,5 @@ PRIVATE_IP=$(ip addr show eth1 | grep -oP '(?<=inet\s)10\.\d+\.\d+\.\d+')
 echo "Use the following IP (eth1) for API server: $PRIVATE_IP"
 
 # Run bootstrap
-sudo ./cephadm bootstrap --cleanup-on-failure --mon-ip $PRIVATE_IP | tee bootstrap.log
+sudo ./cephadm bootstrap --cleanup-on-failure --cluster-network 10.10.0.0/16 --mon-ip $PRIVATE_IP | tee bootstrap.log
 
