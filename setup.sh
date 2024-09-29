@@ -5,6 +5,8 @@
 # 2. One or more raw (unformatted) block storage
 
 set -e
+sudo apt-get update
+sudo apt-get install -y net-tools
 
 # Fetch cephadm and configure the version to install
 CEPH_RELEASE=18.2.4

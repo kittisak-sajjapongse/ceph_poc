@@ -27,7 +27,8 @@ resource "digitalocean_project" "ceph_project" {
   environment = "Development"
   resources   = concat(
     [for host in digitalocean_droplet.storage : host.urn],
-    [for volume in digitalocean_volume.storage_volumes : volume.urn]
+    [for volume in digitalocean_volume.storage_volumes : volume.urn],
+    [digitalocean_droplet.master.urn]
   )
 }
 
@@ -43,15 +44,15 @@ variable "hosts" {
   default = [
     {
       name = "storage01",
-      size = "s-2vcpu-2gb",
+      size = "s-2vcpu-4gb",
     },
     {
       name = "storage02",
-      size = "s-2vcpu-2gb",
+      size = "s-2vcpu-4gb",
     },
     {
       name = "storage03",
-      size = "s-2vcpu-2gb",
+      size = "s-2vcpu-4gb",
     }
   ]
 }
@@ -114,7 +115,7 @@ resource "digitalocean_volume_attachment" "volume_attachment" {
 resource "digitalocean_droplet" "master" {
   name   = "master"
   region = var.region
-  size   = "s-2vcpu-2gb"
+  size   = "s-2vcpu-4gb"
   image  = "ubuntu-22-04-x64"
 
   # Connect to both public and private networks
