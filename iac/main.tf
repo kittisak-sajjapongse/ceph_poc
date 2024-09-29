@@ -20,6 +20,17 @@ variable "region" {
   default = "sgp1"
 }
 
+resource "digitalocean_project" "ceph_project" {
+  name        = "ceph_project"
+  description = "A project for learning Ceph storage"
+  purpose     = "Learning Ceph Storage"
+  environment = "Development"
+  resources   = concat(
+    [for host in digitalocean_droplet.storage : host.urn],
+    [for volume in digitalocean_volume.storage_volumes : volume.urn]
+  )
+}
+
 # Create a VPC for the private network
 resource "digitalocean_vpc" "ceph_network" {
   name     = "ceph-network"
@@ -118,8 +129,8 @@ resource "digitalocean_droplet" "master" {
 }
 
 # Create a firewall for internal hosts, allowing SSH only from bastion
-resource "digitalocean_firewall" "internal_hosts_firewall" {
-  name    = "internal-hosts-firewall"
+resource "digitalocean_firewall" "ceph_firewall" {
+  name    = "ceph-firewall"
   droplet_ids = [for droplet in digitalocean_droplet.storage : droplet.id]
 
   # Inbound rules: Allow SSH only from the bastion private IP

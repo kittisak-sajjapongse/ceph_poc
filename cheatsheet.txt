@@ -4,6 +4,8 @@ sudo cephadm shell
 === Pool ===
 ceph osd pool ls
 
+# === Pool deletion ===
+# Reference: https://achchusnulchikam.medium.com/solved-error-eperm-pool-deletion-is-disabled-you-must-first-set-the-mon-allow-pool-delete-config-efa95e3ae329
 ceph tell mon.* injectargs --mon_allow_pool_delete true
 ceph osd pool delete <pool_name> <pool_name> --yes-i-really-really-mean-it
 ceph tell mon.* injectargs --mon_allow_pool_delete false
