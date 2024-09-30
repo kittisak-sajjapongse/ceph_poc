@@ -24,3 +24,10 @@ echo "Use the following IP (eth1) for API server: $PRIVATE_IP"
 # Run bootstrap
 sudo ./cephadm bootstrap --cleanup-on-failure --cluster-network 10.10.0.0/16 --mon-ip $PRIVATE_IP | tee bootstrap.log
 
+##################
+# Important Note:
+# Ceph cluster seems to be IO (network) intensive. Network performance is critical to communication between OSDs and master
+# We use the --cluster-network option to make sure that they communicate through internal network. However, we still observe
+# intermittent down / slowness / long response / Pool unhealthiness with the internal network on DigitalOcean.
+##################
+

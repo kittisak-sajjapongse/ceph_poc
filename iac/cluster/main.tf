@@ -44,11 +44,11 @@ variable "hosts" {
   default = [
     {
       name = "storage01",
-      size = "s-2vcpu-4gb",
+      size = "s-2vcpu-4gb-intel",
     },
     {
       name = "storage02",
-      size = "s-2vcpu-4gb",
+      size = "s-2vcpu-4gb-intel",
     }
   ]
 }
@@ -112,7 +112,7 @@ resource "digitalocean_volume_attachment" "volume_attachment" {
 resource "digitalocean_droplet" "master" {
   name   = "master"
   region = var.region
-  size   = "s-2vcpu-4gb"
+  size   = "s-2vcpu-4gb-intel"
   image  = "ubuntu-22-04-x64"
 
   # Connect to both public and private networks
